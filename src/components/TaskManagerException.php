@@ -1,5 +1,6 @@
 <?php
-namespace vm\cron;
+
+namespace petargit\cron\components;
 
 /**
  * Class TaskManagerException

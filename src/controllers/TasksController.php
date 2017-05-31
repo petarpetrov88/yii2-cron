@@ -1,13 +1,13 @@
 <?php
-namespace vm\cron\controllers;
+namespace petargit\cron\controllers;
 
-use app\models\Task;
-use app\models\TaskRun;
-use vm\cron\assets\TasksAsset;
-use vm\cron\TaskInterface;
-use vm\cron\TaskLoader;
-use vm\cron\TaskManager;
-use vm\cron\TaskRunner;
+use petargit\cron\models\Task;
+use petargit\cron\models\TaskRun;
+use petargit\cron\components\TasksAsset;
+use petargit\cron\components\TaskInterface;
+use petargit\cron\components\TaskLoader;
+use petargit\cron\components\TaskManager;
+use petargit\cron\components\TaskRunner;
 use yii\web\Controller;
 
 /**

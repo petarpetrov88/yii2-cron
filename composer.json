@@ -1,5 +1,5 @@
 {
-  "name": "voodoo-mobile/yii2-cron",
+  "name": "petargit/yii2-cron",
   "description": "Flexible cron tasks manager for MVC-type applications",
   "minimum-stability": "dev",
   "type": "yii2-module",
@@ -11,7 +11,7 @@
     "Yii2",
     "Yii 2"
   ],
-  "homepage": "https://github.com/voodoo-mobile/yii2-cron",
+  "homepage": "https://github.com/petarpetrov88/yii2-cron",
   "license": "MIT",
   "authors": [
     {
@@ -22,6 +22,11 @@
       "name": "Voodoo Mobile Ltd.",
       "email": "public@voodoo-mobile.com",
       "homepage": "https://voodoo.rocks",
+      "role": "Developer"
+    },
+    {
+      "name" : "Peter Petrov",
+      "email" : "petargit@gmail.com",
       "role": "Developer"
     }
   ],

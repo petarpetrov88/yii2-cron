@@ -1,5 +1,5 @@
 <?php
-namespace vm\cron;
+namespace petargit\cron\components;
 
 use Cron\CronExpression;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace app\models;
+namespace petargit\cron\models;
 
 use vm\cron\TaskInterface;
 use vm\cron\TaskRunInterface;

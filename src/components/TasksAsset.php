@@ -5,7 +5,7 @@
  * Time: 16:40
  */
 
-namespace vm\cron\assets;
+namespace petargit\cron\components;
 
 use yii\web\AssetBundle;
 

@@ -1,5 +1,6 @@
 <?php
-namespace app\models;
+
+namespace petargit\cron\models;
 
 use vm\cron\TaskRunInterface;
 use yii\db\ActiveRecord;

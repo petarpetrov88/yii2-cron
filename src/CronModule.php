@@ -4,7 +4,7 @@
  * @link      https://voodoo.rocks
  * @license   http://opensource.org/licenses/MIT The MIT License (MIT)
  */
-namespace vm\cron;
+namespace petargit\cron;
 
 use Yii;
 use yii\base\Exception;
@@ -15,7 +15,7 @@ use yii\base\Exception;
  */
 class CronModule extends \yii\base\Module
 {
-    public $controllerNamespace = 'vm\cron\controllers';
+    public $controllerNamespace = 'petargit\cron\controllers';
     /**
      * @throws Exception
      */

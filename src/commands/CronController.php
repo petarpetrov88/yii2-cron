@@ -5,7 +5,7 @@
  * Time: 16:52
  */
 
-namespace app\commands;
+namespace petargit\cron\commands;
 
 use app\models\Task;
 use vm\cron\TaskRunner;

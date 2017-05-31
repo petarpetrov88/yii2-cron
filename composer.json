@@ -41,8 +41,8 @@
   },
   "autoload": {
     "psr-4": {
-      "vm\\cron\\": "src/",
-      "vm\\cron_tests\\": "tests/"
+      "petargit\\cron\\": "src/",
+      "petargit\\cron_tests\\": "tests/"
     }
   }
 }

@@ -7,8 +7,8 @@
 
 namespace petargit\cron\commands;
 
-use app\models\Task;
-use vm\cron\TaskRunner;
+use petargit\cron\models\Task;
+use petargit\cron\components\TaskRunner;
 use yii\console\Controller;
 
 class CronController extends Controller

@@ -2,9 +2,11 @@
 
 namespace petargit\cron\models;
 
-use vm\cron\TaskInterface;
-use vm\cron\TaskRunInterface;
+use petargit\cron\components\TaskInterface;
+use petargit\cron\components\TaskRunInterface;
+use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
+use yii\helpers\ArrayHelper;
 
 /**
  * @author mult1mate
@@ -18,48 +20,25 @@ use yii\db\ActiveRecord;
  * @property string $ts
  * @property string $ts_updated
  */
-class Task extends ActiveRecord implements TaskInterface
+class Task extends ActiveRecord
 {
+    const TASK_STATUS_ACTIVE   = '1';
+    const TASK_STATUS_INACTIVE = '0';
+    const TASK_STATUS_DELETED  = '-1';
+
+    public function behaviors()
+    {
+        return ArrayHelper::merge(
+            parent::behaviors(),
+            [
+                'class' => TimestampBehavior::className(),
+            ]
+        );
+    }
+
     public static function tableName()
     {
         return 'tasks';
-    }
-
-    public static function taskGet($task_id)
-    {
-        return self::findOne($task_id);
-    }
-
-    public static function getList()
-    {
-        return self::findBySql("SELECT * FROM `tasks`
-        WHERE `status` NOT IN('deleted')
-        ORDER BY status, task_id DESC")->all();
-    }
-
-    public static function getAll()
-    {
-        return self::findAll([]);
-    }
-
-    public static function getReport($date_begin, $date_end)
-    {
-        $sql = "SELECT t.command, t.task_id,
-        SUM(CASE WHEN tr.status = 'started' THEN 1 ELSE 0 END) AS started,
-        SUM(CASE WHEN tr.status = 'completed' THEN 1 ELSE 0 END) AS completed,
-        SUM(CASE WHEN tr.status = 'error' THEN 1 ELSE 0 END) AS error,
-        round(AVG(tr.execution_time),2) AS time_avg,
-        count(*) AS runs
-        FROM task_runs AS tr
-        LEFT JOIN tasks AS t ON t.task_id=tr.task_id
-        WHERE tr.ts BETWEEN :date_begin AND :date_end + INTERVAL 1 DAY
-        GROUP BY command
-        ORDER BY tr.task_id";
-
-        return \Yii::$app->db->createCommand($sql, [
-            ':date_begin' => $date_begin,
-            ':date_end'   => $date_end,
-        ])->queryAll();
     }
 
     /**
@@ -68,136 +47,36 @@ class Task extends ActiveRecord implements TaskInterface
     public function rules()
     {
         return [
-            [['time', 'command', 'status'], 'required'],
-            [['time', 'status'], 'string', 'max' => 64],
-            [['command'], 'string', 'max' => 256],
+            [['time', 'route', 'status'], 'required'],
+            [['time'], 'string', 'max' => 64],
+            [['route', 'params', 'command'], 'string', 'max' => 255],
+            [['created_at', 'updated_at', 'status'], 'integer', 'max' => 11],
+            [['time', 'command', 'route', 'params', 'status', 'comment', 'created_at', 'updated_at'], 'safe']
         ];
     }
 
-    public function taskDelete()
+    public static function getList()
     {
-        return $this->delete();
+        return self::find()
+            ->where(['NOT IN', 'status', [Task::TASK_STATUS_DELETED]])
+            ->orderBy(['created_at' => SORT_DESC, 'id' => SORT_DESC])
+            ->all();
     }
 
-    public function taskSave()
+    public function getStatusHR()
     {
-        return $this->save();
-    }
-
-    public static function createNew()
-    {
-        return new self();
-    }
-
-    /**
-     * @return TaskRunInterface
-     */
-    public function createTaskRun()
-    {
-        return new TaskRun();
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTaskId()
-    {
-        return $this->task_id;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTime()
-    {
-        return $this->time;
-    }
-
-    /**
-     * @param mixed $time
-     */
-    public function setTime($time)
-    {
-        $this->time = $time;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getStatus()
-    {
-        return $this->status;
-    }
-
-    /**
-     * @param mixed $status
-     */
-    public function setStatus($status)
-    {
-        $this->status = $status;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getCommand()
-    {
-        return $this->command;
-    }
-
-    /**
-     * @param mixed $command
-     */
-    public function setCommand($command)
-    {
-        $this->command = $command;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getComment()
-    {
-        return $this->comment;
-    }
-
-    /**
-     * @param mixed $comment
-     */
-    public function setComment($comment)
-    {
-        $this->comment = $comment;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTs()
-    {
-        return $this->ts;
-    }
-
-    /**
-     * @param mixed $ts
-     */
-    public function setTs($ts)
-    {
-        $this->ts = $ts;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTsUpdated()
-    {
-        return $this->ts_updated;
-    }
-
-    /**
-     * @param mixed $ts
-     */
-    public function setTsUpdated($ts)
-    {
-        $this->ts_updated = $ts;
+        switch ($this->status) {
+            case Task::TASK_STATUS_ACTIVE:
+                return 'Active';
+                break;
+            case Task::TASK_STATUS_INACTIVE:
+                return 'Inactive';
+                break;
+            case Task::TASK_STATUS_DELETED:
+                return 'Deleted';
+                break;
+            default:
+                return 'Unknown';
+        }
     }
 }

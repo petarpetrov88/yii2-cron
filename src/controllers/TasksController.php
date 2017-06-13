@@ -3,12 +3,14 @@ namespace petargit\cron\controllers;
 
 use petargit\cron\models\Task;
 use petargit\cron\models\TaskRun;
-use petargit\cron\components\TasksAsset;
-use petargit\cron\components\TaskInterface;
 use petargit\cron\components\TaskLoader;
 use petargit\cron\components\TaskManager;
 use petargit\cron\components\TaskRunner;
+use yii\base\Exception;
+use yii\helpers\Url;
+use yii\web\BadRequestHttpException;
 use yii\web\Controller;
+use yii\web\NotFoundHttpException;
 
 /**
  * @author mult1mate
@@ -20,21 +22,137 @@ class TasksController extends Controller
     private static $tasks_controllers_folder;
     private static $tasks_namespace;
 
-    public function __construct($id, $module, $config = [])
+    public function init()
     {
-        parent::__construct($id, $module, $config);
-        self::$tasks_controllers_folder = __DIR__ . '/../models/';
-        self::$tasks_namespace          = 'app\\models\\';
-        TasksAsset::register($this->view);
+        parent::init();
+        self::$tasks_controllers_folder = \Yii::$app->getModule('cron-management')->tasksControllersFolder;
+        self::$tasks_namespace          = \Yii::$app->getModule('cron-management')->tasksNamespace;
     }
 
     public function actionIndex()
     {
-        return $this->render('tasks_list', [
+        return $this->render('index', [
             'tasks'   => Task::getList(),
             'methods' => TaskLoader::getAllMethods(self::$tasks_controllers_folder, self::$tasks_namespace),
         ]);
     }
+
+    public function actionCreate()
+    {
+        $model = new Task();
+
+        if ($model->load(\Yii::$app->request->post()) && $model->save()) {
+            $this->redirect(Url::to('/cron-management/tasks/index'));
+        }
+
+        return $this->render('create', [
+            'model' => $model,
+            'methods' => TaskLoader::getAllMethods(self::$tasks_controllers_folder, self::$tasks_namespace),
+        ]);
+    }
+
+    public function actionEdit()
+    {
+        $id = \Yii::$app->request->get('task_id', false);
+
+        if (!$id)
+            throw new BadRequestHttpException();
+
+        $task = Task::findOne($id);
+
+        if (!$task)
+            throw new NotFoundHttpException('Task with id ' . $id . ' was not found!');
+
+        if ($task->load(\Yii::$app->request->post()) && $task->save()) {
+            $this->redirect(Url::to('/cron-management/tasks/index'));
+        }
+
+        return $this->render('edit', [
+            'model'    => $task,
+            'methods' => TaskLoader::getAllMethods(self::$tasks_controllers_folder, self::$tasks_namespace),
+        ]);
+    }
+
+    public function actionLog()
+    {
+        $taskID = \Yii::$app->request->get('task_id', null);
+        $runs    = TaskRun::getLast($taskID);
+
+        return $this->render('log', ['runs' => $runs]);
+    }
+
+    public function actionGetDates()
+    {
+        $time  = \Yii::$app->request->post('time', false);
+
+        if (!$time)
+            throw new BadRequestHttpException();
+
+        $dates = TaskRunner::getRunDates($time);
+
+        if (empty($dates)) {
+            return;
+        }
+
+        return $this->renderAjax('dates', [
+            'dates' => $dates
+        ]);
+    }
+
+    public function actionGetOutput()
+    {
+        $taskRunID = \Yii::$app->request->get('run_id', false);
+
+        if (!$taskRunID)
+            throw new BadRequestHttpException();
+
+        $run = TaskRun::find()->where(['id' => $taskRunID])->one();
+
+        if (!$run)
+            throw new NotFoundHttpException();
+
+        return $this->renderAjax('output', [
+            'output' => $run->output
+        ]);
+    }
+
+    public function actionTasksReport()
+    {
+        $dateBegin = \Yii::$app->request->get('date_begin', date('Y-m-d', strtotime('-6 day')));
+        $dateEnd   = \Yii::$app->request->get('date_end', date('Y-m-d'));
+
+        return $this->render('report', [
+            'report'     => TaskRun::getReport($dateBegin, $dateEnd),
+            'dateBegin' => $dateBegin,
+            'dateEnd'   => $dateEnd,
+        ]);
+    }
+
+    public function actionRunTask()
+    {
+        $taskID = \Yii::$app->request->post('task_id');
+
+        if (!$taskID)
+            throw new BadRequestHttpException();
+
+        $task = Task::find()->where(['id' => $taskID])->one();
+
+        if (!$task)
+            throw new NotFoundHttpException();
+
+        $output = TaskRunner::runTask($task);
+
+        $this->renderContent($output . '<hr />');
+    }
+
+
+
+
+
+
+
+
+
 
     public function actionExport()
     {
@@ -62,95 +180,15 @@ class TasksController extends Controller
         }
     }
 
-    public function actionTaskLog()
-    {
-        $task_id = isset($_GET['task_id']) ? $_GET['task_id'] : null;
-        $runs    = TaskRun::getLast($task_id);
 
-        return $this->render('runs_list', ['runs' => $runs]);
-    }
 
-    public function actionRunTask()
-    {
-        if (isset($_POST['task_id'])) {
-            $tasks = !is_array($_POST['task_id']) ? [$_POST['task_id']] : $_POST['task_id'];
-            foreach ($tasks as $t) {
-                $task = Task::findOne($t);
-                /**
-                 * @var Task $task
-                 */
 
-                $output = TaskRunner::runTask($task);
-                echo($output . '<hr>');
-            }
-        } elseif (isset($_POST['custom_task'])) {
-            $result = TaskRunner::parseAndRunCommand($_POST['custom_task']);
-            echo ($result) ? 'success' : 'failed';
-        } else {
-            echo 'empty task id';
-        }
-    }
 
-    public function actionGetDates()
-    {
-        $time  = $_POST['time'];
-        $dates = TaskRunner::getRunDates($time);
-        if (empty($dates)) {
-            echo 'Invalid expression';
 
-            return;
-        }
-        echo '<ul>';
-        foreach ($dates as $d) {
-            /**
-             * @var \DateTime $d
-             */
-            echo '<li>' . $d->format('Y-m-d H:i:s') . '</li>';
-        }
-        echo '</ul>';
-    }
 
-    public function actionGetOutput()
-    {
-        if (isset($_POST['task_run_id'])) {
-            $run = TaskRun::findOne($_POST['task_run_id']);
-            /**
-             * @var TaskRun $run
-             */
 
-            echo htmlentities($run->getOutput());
-        } else {
-            echo 'empty task run id';
-        }
-    }
 
-    public function actionTaskEdit()
-    {
-        if (isset($_GET['task_id'])) {
-            $task = Task::findOne($_GET['task_id']);
-        } else {
-            $task = new Task();
-        }
-        /**
-         * @var Task $task
-         */
-        $post = \Yii::$app->request->post();
-        if ($task->load($post) && $task->validate()) {
-            $task = TaskManager::editTask(
-                $task,
-                $post['Task']['time'],
-                $post['Task']['command'],
-                $post['Task']['status'],
-                $post['Task']['comment']
-            );
-            \Yii::$app->response->redirect('/?r=tasks/task-edit&task_id=' . $task->task_id);
-        }
 
-        return $this->render('task_edit', [
-            'task'    => $task,
-            'methods' => TaskLoader::getAllMethods(self::$tasks_controllers_folder, self::$tasks_namespace),
-        ]);
-    }
 
     public function actionTasksUpdate()
     {
@@ -171,15 +209,5 @@ class TasksController extends Controller
         }
     }
 
-    public function actionTasksReport()
-    {
-        $date_begin = isset($_GET['date_begin']) ? $_GET['date_begin'] : date('Y-m-d', strtotime('-6 day'));
-        $date_end   = isset($_GET['date_end']) ? $_GET['date_end'] : date('Y-m-d');
 
-        return $this->render('report', [
-            'report'     => Task::getReport($date_begin, $date_end),
-            'date_begin' => $date_begin,
-            'date_end'   => $date_end,
-        ]);
-    }
 }

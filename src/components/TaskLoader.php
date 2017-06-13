@@ -67,6 +67,7 @@ class TaskLoader
     protected static function getControllersList($paths, $namespaces_list)
     {
         $controllers = [];
+
         foreach ($paths as $p_index => $p) {
             if (!file_exists($p)) {
                 throw new TaskManagerException('folder ' . $p . ' does not exist');
@@ -96,6 +97,7 @@ class TaskLoader
         foreach (self::$class_folders as $f) {
             $f        = rtrim($f, '/');
             $filename = $f . '/' . $class_name . '.php';
+
             if (file_exists($filename)) {
                 require_once $filename;
                 if (class_exists($class_name)) {

@@ -30,40 +30,4 @@ class DbHelper
         GROUP BY command
         ORDER BY tr.task_id";
     }
-
-    /**
-     * returns query for TaskInterface table
-     * @return string
-     */
-    public static function tableTasksSql()
-    {
-        return "CREATE TABLE `tasks` (
-        `task_id` SMALLINT(6) NOT NULL AUTO_INCREMENT,
-        `time` VARCHAR(64) NOT NULL,
-        `command` VARCHAR(256) NOT NULL,
-        `status` ENUM('active','inactive','deleted') DEFAULT 'active',
-        `comment` VARCHAR(256) DEFAULT NULL,
-        `ts` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        `ts_updated` TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00',
-        PRIMARY KEY (`task_id`)
-        ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8";
-    }
-
-    /**
-     * returns query for TaskRunInterface table
-     * @return string
-     */
-    public static function tableTaskRunsSql()
-    {
-        return "CREATE TABLE `task_runs` (
-        `task_run_id` INT(11) NOT NULL AUTO_INCREMENT,
-        `task_id` SMALLINT(6) NOT NULL,
-        `status` ENUM('started','completed','error') DEFAULT NULL,
-        `execution_time` DECIMAL(6,2) NOT NULL DEFAULT '0.00',
-        `ts` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        `output` TEXT,
-        PRIMARY KEY (`task_run_id`),
-        KEY `task_id` (`task_id`), KEY `ts` (`ts`)
-        ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;";
-    }
 }

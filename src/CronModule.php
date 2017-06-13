@@ -16,11 +16,7 @@ use yii\base\Exception;
 class CronModule extends \yii\base\Module
 {
     public $controllerNamespace = 'petargit\cron\controllers';
-    /**
-     * @throws Exception
-     */
-    public function init()
-    {
-        parent::init();
-    }
+    public $tasksNamespace;
+    public $tasksControllersFolder;
+
 }

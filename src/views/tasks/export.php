@@ -43,3 +43,29 @@ $this->title = 'Task Manager - Import/Export';
     </form>
     <code id="export_result"></code>
 </div>
+<?php
+$js = <<<JS
+    $('#parse_crontab_form').submit(function () {
+        $.post(controller_url + 'parse-crontab', $(this).serialize(), function (data) {
+            var list = '';
+            data.forEach(function (element) {
+                element.forEach(function (el) {
+                    list += '' + el + '<br>';
+                });
+                list += '<hr>';
+            });
+            $('#parse_result').html(list);
+        }, 'json');
+        return false;
+    });
+    $('#export_form').submit(function () {
+        $.post(controller_url + 'export-tasks', $(this).serialize(), function (data) {
+            var list = '';
+            data.forEach(function (element) {
+                list += '' + element + '<br>';
+            });
+            $('#export_result').html(list);
+        }, 'json');
+        return false;
+    });
+JS;

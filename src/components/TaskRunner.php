@@ -2,6 +2,9 @@
 namespace petargit\cron\components;
 
 use Cron\CronExpression;
+use petargit\cron\models\Task;
+use petargit\cron\models\TaskRun;
+use yii\base\Exception;
 
 /**
  * Class TaskRunner
@@ -20,58 +23,48 @@ class TaskRunner
      */
     public static function checkAndRunTasks($tasks)
     {
-        $date = date('Y-m-d H:i:s');
-        foreach ($tasks as $t) {
-            /**
-             * @var TaskInterface $t
-             */
-            if (TaskInterface::TASK_STATUS_ACTIVE != $t->getStatus()) {
+        foreach ($tasks as $task) {
+            if (Task::TASK_STATUS_ACTIVE != $task->status)
                 continue;
-            }
 
-            $cron = CronExpression::factory($t->getTime());
+            $cron = CronExpression::factory($task->time);
 
-            if ($cron->isDue($date)) {
-                self::runTask($t);
-            }
+            if ($cron->isDue())
+                self::runTask($task);
         }
     }
 
     /**
-     * Runs task and returns output
+     * @param \petargit\cron\models\Task $task
      *
-     * @param TaskInterface $task
-     *
-     * @return string
+     * @return bool
+     * @throws \yii\base\Exception
      */
-    public static function runTask($task)
+    public static function runTask(Task $task)
     {
-        $run = $task->createTaskRun();
-        $run->setTaskId($task->getTaskId());
-        $run->setTs(date('Y-m-d H:i:s'));
-        $run->setStatus(TaskRunInterface::RUN_STATUS_STARTED);
-        $run->saveTaskRun();
-        $run_final_status = TaskRunInterface::RUN_STATUS_COMPLETED;
+        $run = new TaskRun();
+        $run->setAttributes([
+            'task_id' => $task->id,
+            'status' => TaskRun::STATUS_STARTED,
+        ]);
 
-        ob_start();
-        $time_begin = microtime(true);
-
-        $result = self::parseAndRunCommand($task->getCommand());
-        if (!$result) {
-            $run_final_status = TaskRunInterface::RUN_STATUS_ERROR;
+        if (!$run->save()) {
+            throw new Exception('Could not save run statics.');
         }
 
-        $output = ob_get_clean();
-        $run->setOutput($output);
+        $startTime = microtime(true);
 
-        $time_end = microtime(true);
-        $time     = round(($time_end - $time_begin), 2);
-        $run->setExecutionTime($time);
+        $result = self::parseAndRunCommand($task->route, $task->params);
 
-        $run->setStatus($run_final_status);
-        $run->saveTaskRun();
+        $run->output = $result['output'];
+        $run->status = ($result['success'])? TaskRun::STATUS_COMPLETED : TaskRun::STATUS_ERROR;
+        $run->execution_time = round((microtime(true) - $startTime), 2);
 
-        return $output;
+        if (!$run->save()) {
+            throw new Exception('Could not save task run stats');
+        }
+
+        return $run->output;
     }
 
     /**
@@ -81,24 +74,37 @@ class TaskRunner
      *
      * @return mixed
      */
-    public static function parseAndRunCommand($command)
+    public static function parseAndRunCommand($route, $params = null)
     {
-        try {
-            list($class, $method, $args) = TaskManager::parseCommand($command);
-            if (!class_exists($class)) {
-                TaskLoader::loadController($class);
-            }
+        $descriptorspec = [
+            1 => array("pipe", "w"),
+            2 => array("pipe", "w"),
+        ];
 
-            $obj = new $class();
-            if (!method_exists($obj, $method)) {
-                throw new TaskManagerException('method ' . $method . ' not found in class ' . $class);
-            }
+        $execPath = realpath(\Yii::getAlias('@app') . '/../');
+        $process = proc_open(trim(sprintf('cd %s && php yii %s %s', $execPath, $route, $params)), $descriptorspec, $pipes);
 
-            return call_user_func_array([$obj, $method], $args);
-        } catch (\Exception $e) {
-            echo 'Caught an exception: ' . get_class($e) . ': ' . PHP_EOL . $e->getMessage() . PHP_EOL;
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
 
-            return false;
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+
+        if ($stdout && !$stderr) {
+            return [
+                'success' => true,
+                'output' => $stdout
+            ];
+        } else if ($stderr && !$stdout) {
+            return [
+                'success' => false,
+                'output' => $stderr
+            ];
+        } else {
+            return [
+                'success' => false,
+                'output' => 'This command has no output.'
+            ];
         }
     }
 

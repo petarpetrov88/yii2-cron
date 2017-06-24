@@ -15,8 +15,7 @@ class m160222_112000_install_task_manager extends Migration
             'id' => $this->primaryKey(),
             'time' => $this->string(64)->notNull(),
             'command' => $this->string(255)->notNull(),
-            'controller' => $this->string(255)->notNull(),
-            'method' => $this->string(255)->notNull(),
+            'route' => $this->string(255)->notNull(),
             'params' => $this->string(255),
             'status' => $this->integer()->notNull(),
             'comment' => $this->string(255),
@@ -35,7 +34,7 @@ class m160222_112000_install_task_manager extends Migration
         ], $tableOptions);
 
         $this->createIndex('tasks_runs_task_id', '{{%tasks_runs}}', 'task_id');
-        $this->createIndex('tasks_runs_task_ts', '{{%tasks_runs}}', 'last_run');
+        $this->createIndex('tasks_runs_task_ts', '{{%tasks_runs}}', 'started_at');
     }
 
     public function down()

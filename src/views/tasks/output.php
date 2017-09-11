@@ -5,5 +5,5 @@
         </button>
         <h4 class="modal-title" id="myLargeModalLabel">Task run output</h4>
     </div>
-    <div class="modal-body"><?=$output?></div>
+    <div class="modal-body"><pre><?=$output?></pre></div>
 </div>
